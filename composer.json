@@ -1,0 +1,26 @@
+{
+    "name": "ctxkiwi/tiny-orm",
+    "description": "",
+    "type": "library",
+    "authors": [
+        {
+            "name": "LVD",
+            "email": "vdvlorenz@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "TinyOrm\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^5.4.0|^6.0",
+        "symfony/var-dumper": "^4.1"
+    },
+    "scripts": {
+        "test": "vendor/bin/phpunit"
+    }
+}
