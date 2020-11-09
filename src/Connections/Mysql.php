@@ -9,6 +9,7 @@ class Mysql extends \TinyOrm\Connection {
     private $readHosts = [];
     private $writeHosts = [];
     private $options;
+    private $tryToAvoidBindings = true;
 
     public function __construct($options) {
 
@@ -234,10 +235,12 @@ class Mysql extends \TinyOrm\Connection {
     }
 
     private function analyzeValue($value) {
-        // return (object) [
-        //     'safe' => false,
-        //     'binding' => $value,
-        // ];
+        if (!$this->tryToAvoidBindings) {
+            return (object) [
+                'safe' => false,
+                'binding' => $value,
+            ];
+        }
         if (is_string($value)) {
             $safe = strlen($value) < 50 && preg_match('/^[a-zA-Z0-9 .-:+-_%]*$/', $value);
             if ($safe) {

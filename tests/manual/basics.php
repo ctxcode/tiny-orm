@@ -35,6 +35,7 @@ class Order extends TinyOrm\Model {
 $start = microtime(true);
 $shopid = 520;
 $orders = Order::select('*')->where('shop_id', $shopid)->where('created_at', '>=', date('Y-01-01 00:00:00'))->where('created_at', '<', date('Y-01-01 00:00:00', strtotime('+1 year')))->where('valid', true)->orderBy('order_nr DESC')->limit(10)->get();
+var_dump((microtime(true) - $start) . 's');
 
 $users = User::select('id, firstname')->limit(2)->get();
 
