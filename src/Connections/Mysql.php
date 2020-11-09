@@ -194,29 +194,32 @@ class Mysql extends \TinyOrm\Connection {
         /////////////
         if ($queryType == \TinyOrm\Query::TYPE_DELETE) {
             $pdoType = \TinyOrm\Connection::WRITE;
+            $sql .= 'DELETE FROM ' . $table;
         }
 
         /////////////
         // WHERE
         /////////////
-        if ($query->whereParts) {
-            $tmp = $this->resolveQueryParts($query->whereParts);
+        if ($query->whereGroup) {
+            $sql .= ' WHERE ';
+            $tmp = $this->handleWhereGroup($query->whereGroup);
             $sql .= $tmp->sql;
             foreach ($tmp->bindings as $binding) {
                 $bindings[] = $binding;
             }
         }
 
+        if ($query->orderBy) {
+            $sql .= ' ORDER BY ' . $query->orderBy;
+        }
         if ($query->limit) {
             $sql .= ' LIMIT ' . $query->limit;
         }
         if ($query->skip) {
             $sql .= ' OFFSET ' . $query->skip;
         }
-        if ($query->orderBy) {
-            $sql .= ' ORDER BY ' . $query->orderBy;
-        }
 
+        var_dump($sql);
         $pdo = $this->getPdo($pdoType);
         $sth = $pdo->prepare($sql);
         $sth->execute($bindings);
@@ -231,20 +234,24 @@ class Mysql extends \TinyOrm\Connection {
     }
 
     private function analyzeValue($value) {
+        // return (object) [
+        //     'safe' => false,
+        //     'binding' => $value,
+        // ];
         if (is_string($value)) {
             $safe = strlen($value) < 50 && preg_match('/^[a-zA-Z0-9 .-:+-_%]*$/', $value);
             if ($safe) {
                 $value = '"' . $value . '"';
             }
         } elseif (is_int($value)) {
-            $str = $value;
-            $safe = preg_match('/^[0-9]$/', $str);
+            $str = $value . '';
+            $safe = preg_match('/^[0-9]+$/', $str);
             if ($safe) {
                 $value = $str;
             }
         } elseif (is_float($value)) {
             $str = str_replace(',', '.', $value . '');
-            $safe = preg_match('/^[0-9]\.?[0-9]*$/', $str);
+            $safe = preg_match('/^[0-9]+\.?[0-9]*$/', $str);
             if ($safe) {
                 $value = $str;
             }
@@ -265,7 +272,7 @@ class Mysql extends \TinyOrm\Connection {
         $sql = '';
         $bindings = [];
         foreach ($parts as $i => $part) {
-            $isSQL = $i % 2;
+            $isSQL = $i % 2 === 0;
             if ($isSQL) {
                 $sql .= $part;
                 continue;
@@ -280,6 +287,56 @@ class Mysql extends \TinyOrm\Connection {
             }
         }
 
+        return (object) [
+            'sql' => $sql,
+            'bindings' => $bindings,
+        ];
+    }
+
+    private function handleWhereGroup($group) {
+        $sql = '';
+        $bindings = [];
+        foreach ($group->wheres as $i => $where) {
+            if ($i > 0) {
+                if (is_object($where)) {
+                    $type = $where->type;
+                }
+                if (is_array($where) && isset($where[0])) {
+                    $type = $where[0];
+                }
+                if ($type == 'AND') {
+                    $sql .= ' AND ';
+                } elseif ($type == 'OR') {
+                    $sql .= ' OR ';
+                } else {
+                    throw new \Exception('Invalid whereGroup type: ' . $type);
+                }
+            }
+            if (is_object($where)) {
+                $subGroup = $where;
+                $tmp = $this->handleWhereGroup($subGroup);
+                $sql .= '(' . ($tmp->sql) . ')';
+                foreach ($tmp->bindings as $bind) {
+                    $bindings[] = $bind;
+                }
+                continue;
+            }
+            $col = $where[1];
+            $sign = $where[2];
+            $value = $where[3];
+            if (is_null($value)) {
+                $sql .= ' `' . $col . '` IS NULL';
+                continue;
+            }
+            $sql .= ' `' . $col . '` ' . $sign . ' ';
+            $check = $this->analyzeValue($value);
+            if ($check->safe) {
+                $sql .= $check->binding;
+            } else {
+                $sql .= '?';
+                $bindings[] = $check->binding;
+            }
+        }
         return (object) [
             'sql' => $sql,
             'bindings' => $bindings,

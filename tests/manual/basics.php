@@ -28,6 +28,13 @@ class User extends TinyOrm\Model {
 class Setting extends TinyOrm\Model {
     static $table = 'settings';
 }
+class Order extends TinyOrm\Model {
+    static $table = 'orders';
+}
+
+$start = microtime(true);
+$shopid = 520;
+$orders = Order::select('*')->where('shop_id', $shopid)->where('created_at', '>=', date('Y-01-01 00:00:00'))->where('created_at', '<', date('Y-01-01 00:00:00', strtotime('+1 year')))->where('valid', true)->orderBy('order_nr DESC')->limit(10)->get();
 
 $users = User::select('id, firstname')->limit(2)->get();
 
@@ -36,5 +43,9 @@ $set->key = 'test';
 $set->value = 'testv';
 $id = $set->create();
 var_dump($id);
+
+// sleep(5);
+
+Setting::delete()->where('value', 'testv')->confirm();
 
 var_dump($users);

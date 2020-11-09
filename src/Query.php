@@ -12,7 +12,7 @@ class Query {
     public $modelClass;
 
     public $selects = null;
-    public $whereParts = [];
+    public $whereGroup;
     public $limit;
     public $skip;
     public $orderBy;
@@ -42,8 +42,25 @@ class Query {
         return DB::getConnection();
     }
 
+    private function getWhereGroup() {
+        if ($this->whereGroup) {
+            return $this->whereGroup;
+        }
+        $group = new WhereGroup();
+        $group->type = 'AND';
+        $this->whereGroup = $group;
+        return $group;
+    }
+
+    public function orWhere(...$parts) {
+        $group = $this->getWhereGroup();
+        $group->parseWhereParams($parts, 'OR');
+        return $this;
+    }
+
     public function where(...$parts) {
-        $this->whereParts = $parts;
+        $group = $this->getWhereGroup();
+        $group->parseWhereParams($parts, 'AND');
         return $this;
     }
 
