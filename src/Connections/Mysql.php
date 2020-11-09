@@ -325,10 +325,10 @@ class Mysql extends \TinyOrm\Connection {
             $sign = $where[2];
             $value = $where[3];
             if (is_null($value)) {
-                $sql .= ' `' . $col . '` IS NULL';
+                $sql .= '`' . $col . '` IS NULL';
                 continue;
             }
-            $sql .= ' `' . $col . '` ' . $sign . ' ';
+            $sql .= '`' . $col . '` ' . $sign . ' ';
             $check = $this->analyzeValue($value);
             if ($check->safe) {
                 $sql .= $check->binding;
