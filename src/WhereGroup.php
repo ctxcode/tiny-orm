@@ -17,6 +17,7 @@ class WhereGroup {
             $group->type = $type;
             $parts[0]($group);
             $this->wheres[] = $group;
+            return;
         }
         if ($count < 2) {
             throw new \Exception('Missing params in where()');
@@ -36,9 +37,11 @@ class WhereGroup {
 
     public function orWhere(...$parts) {
         $this->parseWhereParams($parts, 'OR');
+        return $this;
     }
 
     public function where(...$parts) {
         $this->parseWhereParams($parts, 'AND');
+        return $this;
     }
 }
