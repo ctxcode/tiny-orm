@@ -38,6 +38,7 @@ $orders = Order::select('*')->where('shop_id', $shopid)->where('created_at', '>=
 var_dump((microtime(true) - $start) . 's');
 
 $users = User::select('id, firstname')->limit(2)->get();
+// var_dump($users);
 
 $set = new Setting();
 $set->key = 'test';
@@ -45,8 +46,6 @@ $set->value = 'testv';
 $id = $set->create();
 var_dump($id);
 
-// sleep(5);
-
+var_dump(Setting::select('*')->where('value', 'testv')->count());
 Setting::delete()->where('value', 'testv')->confirm();
-
-var_dump($users);
+var_dump(Setting::select('*')->where('value', 'testv')->count());

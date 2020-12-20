@@ -119,6 +119,10 @@ class Query {
         $result = $pdo->runQuery($this, $options);
 
         if ($this->type === static::TYPE_SELECT) {
+            $isCount = $options['isCount'] ?? false;
+            if ($isCount) {
+                return $result;
+            }
             $list = [];
             $modelClass = $this->modelClass;
             foreach ($result as $row) {

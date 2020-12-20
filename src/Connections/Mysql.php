@@ -115,9 +115,9 @@ class Mysql extends \TinyOrm\Connection {
         /////////////
         // SELECT
         /////////////
+        $isCount = $options['isCount'] ?? false;
         if ($queryType == \TinyOrm\Query::TYPE_SELECT) {
             $pdoType = \TinyOrm\Connection::READ;
-            $isCount = $options['isCount'] ?? false;
             $selects = $query->selects;
             if ($isCount) {
                 $selects = 'COUNT(*)';
@@ -220,12 +220,20 @@ class Mysql extends \TinyOrm\Connection {
             $sql .= ' OFFSET ' . $query->skip;
         }
 
-        var_dump($sql);
+        // var_dump($sql);
         $pdo = $this->getPdo($pdoType);
         $sth = $pdo->prepare($sql);
         $sth->execute($bindings);
         if ($queryType == \TinyOrm\Query::TYPE_SELECT) {
-            return $sth->fetchAll(\PDO::FETCH_ASSOC);
+            $result = $sth->fetchAll(\PDO::FETCH_ASSOC);
+            if ($isCount) {
+                $counts = $result[0] ?? [];
+                foreach ($counts as $k => $v) {
+                    return $v;
+                }
+                return 0;
+            }
+            return $result;
         }
         if ($queryType == \TinyOrm\Query::TYPE_INSERT) {
             return $pdo->lastInsertId();
