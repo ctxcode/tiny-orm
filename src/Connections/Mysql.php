@@ -125,7 +125,7 @@ class Mysql extends \TinyOrm\Connection {
             if (!$selects) {
                 throw new \Exception('select() is missing the first parameter');
             }
-            if (!is_string($query->selects)) {
+            if (!is_string($selects)) {
                 throw new \Exception('select() first parameter must be string');
             }
             $sql .= 'SELECT ' . $selects;

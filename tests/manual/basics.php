@@ -46,6 +46,6 @@ $set->value = 'testv';
 $id = $set->create();
 var_dump($id);
 
-var_dump(Setting::select('*')->where('value', 'testv')->count());
+var_dump(Setting::select()->where('value', 'testv')->count());
 Setting::delete()->where('value', 'testv')->confirm();
-var_dump(Setting::select('*')->where('value', 'testv')->count());
+var_dump(Setting::select()->where('value', 'testv')->count());
