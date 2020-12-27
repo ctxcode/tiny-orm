@@ -30,6 +30,14 @@ class Model {
         return $q;
     }
 
+    public function __get($key) {
+        return $this->getAttribute($key);
+    }
+
+    public function getAttribute($key) {
+        return $this->_attributes[$key];
+    }
+
     public function __set($key, $value) {
         $this->setAttributes([$key => $value]);
     }
@@ -86,5 +94,14 @@ class Model {
     public function create() {
         $id = static::insert($this->_attributes);
         return $id;
+    }
+
+    // Relations
+    public function belongsTo($model, $localKey, $foreignKey) {
+        $query = $model::select('*');
+        $relation = new Relation('belongsTo', $query);
+        $relation->localKey = $localKey;
+        $relation->foreignKey = $foreignKey;
+        return $relation;
     }
 }

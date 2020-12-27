@@ -107,10 +107,10 @@ class Mysql extends \TinyOrm\Connection {
         $bindings = [];
 
         $modelClass = $query->modelClass;
-        if (!isset($modelClass::$table)) {
-            throw new \Exception($modelClass . '::$table is not set');
+        if (!isset($modelClass::$_table)) {
+            throw new \Exception($modelClass . '::$_table is not set');
         }
-        $table = $modelClass::$table;
+        $table = $modelClass::$_table;
 
         $pdoType = null;
         $queryType = $query->getType();
@@ -204,10 +204,22 @@ class Mysql extends \TinyOrm\Connection {
         /////////////
         // WHERE
         /////////////
-        if ($query->whereGroup) {
+        if ($query->whereRelationGroup || $query->whereGroup) {
             $sql .= ' WHERE ';
+        }
+        if ($query->whereRelationGroup) {
+            $tmp = $this->handleWhereGroup($query->whereRelationGroup);
+            $sql .= '(' . $tmp->sql . ')';
+            foreach ($tmp->bindings as $binding) {
+                $bindings[] = $binding;
+            }
+        }
+        if ($query->whereGroup) {
+            if ($query->whereRelationGroup) {
+                $sql .= ' AND ';
+            }
             $tmp = $this->handleWhereGroup($query->whereGroup);
-            $sql .= $tmp->sql;
+            $sql .= '(' . $tmp->sql . ')';
             foreach ($tmp->bindings as $binding) {
                 $bindings[] = $binding;
             }
@@ -305,6 +317,7 @@ class Mysql extends \TinyOrm\Connection {
         $sql = '';
         $bindings = [];
         foreach ($group->wheres as $i => $where) {
+            // Add AND | OR
             if ($i > 0) {
                 if (is_object($where)) {
                     $type = $where->type;
@@ -320,6 +333,7 @@ class Mysql extends \TinyOrm\Connection {
                     throw new \Exception('Invalid whereGroup type: ' . $type);
                 }
             }
+            // Check values
             if (is_object($where)) {
                 $subGroup = $where;
                 $tmp = $this->handleWhereGroup($subGroup);
@@ -337,6 +351,24 @@ class Mysql extends \TinyOrm\Connection {
                 continue;
             }
             $sql .= '`' . $col . '` ' . $sign . ' ';
+
+            if ($sign === 'IN') {
+                $sql .= '(';
+                $sqlParams = [];
+                foreach ($value as $subValue) {
+                    $check = $this->analyzeValue($subValue);
+                    if ($check->safe) {
+                        $sqlParams[] = $check->binding;
+                    } else {
+                        $sqlParams[] = '?';
+                        $bindings[] = $check->binding;
+                    }
+                }
+                $sql .= implode(',', $sqlParams);
+                $sql .= ')';
+                continue;
+            }
+
             $check = $this->analyzeValue($value);
             if ($check->safe) {
                 $sql .= $check->binding;

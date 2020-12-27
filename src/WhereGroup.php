@@ -29,9 +29,19 @@ class WhereGroup {
             $parts[2] = $parts[1];
             $parts[1] = '=';
         }
-        if (!in_array($parts[1], ['=', '!=', '<', '>', '<=', '>='], true)) {
+        if (!in_array($parts[1], ['=', '!=', '<', '>', '<=', '>=', 'IN', 'LIKE'], true)) {
             throw new \Exception('Invalid operator "' . $parts[1] . '" in where()');
         }
+        if ($parts[1] === 'IN') {
+            if (!is_array($parts[2])) {
+                throw new \Exception('When using the IN operator, the value must be of type array');
+            }
+        } else {
+            if (is_array($parts[2])) {
+                throw new \Exception('Cannot use array as where() value, unless when using the operator "IN"');
+            }
+        }
+
         $this->wheres[] = [$type, $parts[0], $parts[1], $parts[2]];
     }
 

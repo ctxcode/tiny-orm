@@ -13,9 +13,13 @@ class Query {
 
     public $selects = null;
     public $whereGroup;
+    public $whereRelationGroup;
     public $limit;
     public $skip;
     public $orderBy;
+
+    public $withs = [];
+    private static $_relationExists = []; // $relationName => true
 
     const TYPE_SELECT = 1;
     const TYPE_INSERT = 2;
@@ -52,6 +56,16 @@ class Query {
         return $group;
     }
 
+    private function getWhereRelationGroup() {
+        if ($this->whereRelationGroup) {
+            return $this->whereRelationGroup;
+        }
+        $group = new WhereGroup();
+        $group->type = 'AND';
+        $this->whereRelationGroup = $group;
+        return $group;
+    }
+
     public function orWhere(...$parts) {
         $group = $this->getWhereGroup();
         $group->parseWhereParams($parts, 'OR');
@@ -60,6 +74,12 @@ class Query {
 
     public function where(...$parts) {
         $group = $this->getWhereGroup();
+        $group->parseWhereParams($parts, 'AND');
+        return $this;
+    }
+
+    public function whereRelation(...$parts) {
+        $group = $this->getWhereRelationGroup();
         $group->parseWhereParams($parts, 'AND');
         return $this;
     }
@@ -89,8 +109,9 @@ class Query {
         if ($this->type !== static::TYPE_SELECT) {
             throw new \Exception('first() can only be used for SELECT queries');
         }
+        $this->limit(1);
         $result = $this->runQuery();
-        return $result[0] ?? null;
+        return $result->items[0] ?? null;
     }
 
     public function confirm() {
@@ -123,13 +144,19 @@ class Query {
             if ($isCount) {
                 return $result;
             }
-            $list = [];
+            $list = new Collection();
             $modelClass = $this->modelClass;
             foreach ($result as $row) {
                 $m = new $modelClass();
                 $m->setAttributes($row, false);
-                $list[] = $m;
+                $list->add($m);
             }
+            // Load relations
+            foreach ($this->withs as $name => $modifier) {
+                $list->load($name, $modifier);
+            }
+
+            // Result
             return $list;
         }
 
@@ -138,6 +165,55 @@ class Query {
 
     public function getType() {
         return $this->type;
+    }
+
+    // Relations
+    public function with($relations) {
+        if (is_array($relations)) {
+            foreach ($relations as $name => $modifier) {
+                if (is_integer($name) && is_string($modifier)) {
+                    $this->addWith($modifier, null);
+                } else {
+                    $this->addWith($name, $modifier);
+                }
+            }
+        } else if (is_string($relations)) {
+            $this->addWith($relations, null);
+        } else {
+            throw new \Exception('With() parameter must be a string or array');
+        }
+
+        return $this;
+    }
+
+    private function addWith(string $name, ?callable $modifier) {
+
+        if (isset($this->withs[$name])) {
+            throw new \Exception('With() already called for "' . $name . '". Overwriting relations is not allowed to limit code confusion.');
+        }
+
+        $funcName = $name . '_Relation';
+
+        if (!isset(static::$_relationExists[$name])) {
+            if (!method_exists($this->modelClass, $funcName)) {
+                throw new \Exception('With("' . $name . '") relationship function does not exist "' . ($this->modelClass) . '::' . $funcName . '()"');
+            }
+            // $refl = new \ReflectionMethod($this->modelClass, $funcName);
+            // if (!$refl->isStatic()) {
+            //     throw new \Exception('Relationship function must be static "' . ($this->modelClass) . '::' . $funcName . '()"');
+            // }
+            static::$_relationExists[$name] = true;
+        }
+
+        $this->withs[$name] = $modifier;
+        // $instance = new $modelClass();
+        // $query = $instance->{$funcName}();
+
+        // if ($modifier) {
+        //     $modifier($query);
+        // }
+
+        // $this->withs[$name] = $query;
     }
 
 }

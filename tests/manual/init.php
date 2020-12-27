@@ -23,15 +23,19 @@ TinyOrm\DB::addConnection('default', [
 ]);
 
 class User extends TinyOrm\Model {
-    static $table = 'users';
+    static $_table = 'users';
 }
 class Setting extends TinyOrm\Model {
-    static $table = 'settings';
+    static $_table = 'settings';
 }
 class Order extends TinyOrm\Model {
-    static $table = 'orders';
+    static $_table = 'orders';
+
+    public function shop_Relation() {
+        return $this->belongsTo('Shop', 'shop_id', 'id');
+    }
 }
 
 class Shop extends TinyOrm\Model {
-    static $table = 'shops';
+    static $_table = 'shops';
 }
