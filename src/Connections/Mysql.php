@@ -82,21 +82,24 @@ class Mysql extends \TinyOrm\Connection {
         return $pdo;
     }
 
-    public function rawQuery(string $type, ...$queryParts) {
-        $types = [
-            'read' => \TinyOrm\Connection::READ,
-            'write' => \TinyOrm\Connection::WRITE,
-        ];
-        if (!isset($types[$type])) {
-            throw new \Exception('Invalid rawQuery type: ' . $type);
-        }
-        $type = $types[$type];
+    public function rawQuery(int $type, string $queryStr, array $bindings = []) {
+
         $pdo = $this->getPdo($type);
 
-        $query = $this->resolveQueryParts($queryParts);
-        $sth = $pdo->prepare($query->sql);
-        $sth->execute($query->bindings);
-        return $sth->fetchAll(\PDO::FETCH_ASSOC);
+        $query = $this->replaceQueryBindings($queryStr, $bindings);
+
+        if (count($bindings) > 0) {
+            $sth = $pdo->prepare($query->sql);
+            $sth->execute($query->bindings);
+        } else {
+            $sth = $pdo->query($query->sql);
+        }
+
+        if ($type == \TinyOrm\Connection::READ) {
+            return $sth->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
+        return true;
     }
 
     public function runQuery(\TinyOrm\Query $query, $options = []) {
@@ -279,28 +282,22 @@ class Mysql extends \TinyOrm\Connection {
         ];
     }
 
-    public function resolveQueryParts($parts) {
-        $sql = '';
-        $bindings = [];
-        foreach ($parts as $i => $part) {
-            $isSQL = $i % 2 === 0;
-            if ($isSQL) {
-                $sql .= $part;
-                continue;
-            }
-            // Is value
-            $check = $this->analyzeValue($part);
+    public function replaceQueryBindings($query, $bindings) {
+
+        $newBindings = [];
+        foreach ($bindings as $key => $value) {
+            $check = $this->analyzeValue($value);
             if ($check->safe) {
-                $sql .= $check->binding;
+                $query = preg_replace('/:' . preg_quote($key, '/') . '([ $])/', $check->binding . '$1', $query);
             } else {
-                $sql .= '?';
-                $bindings[] = $check->binding;
+                $query = preg_replace('/:' . preg_quote($key, '/') . '([ $])/', '?$1', $query);
+                $newBindings[] = $check->binding;
             }
         }
 
         return (object) [
-            'sql' => $sql,
-            'bindings' => $bindings,
+            'sql' => $query,
+            'bindings' => $newBindings,
         ];
     }
 

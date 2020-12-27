@@ -71,8 +71,18 @@ class DB {
         static::$useConnection = $name;
     }
 
-    public function rawQuery(string $type, ...$queryParts) {
-        $conn = $this->getConnection();
-        $conn->rawQuery($type, $query);
+    public static function rawQuery(string $type, string $query, array $bindings = []) {
+
+        $types = [
+            'read' => \TinyOrm\Connection::READ,
+            'write' => \TinyOrm\Connection::WRITE,
+        ];
+        if (!isset($types[$type])) {
+            throw new \Exception('Invalid rawQuery type: ' . $type);
+        }
+        $type = $types[$type];
+
+        $conn = static::getConnection();
+        return $conn->rawQuery($type, $query, $bindings);
     }
 }
