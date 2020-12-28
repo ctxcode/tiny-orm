@@ -24,6 +24,10 @@ TinyOrm\DB::addConnection('default', [
 
 class User extends TinyOrm\Model {
     static $_table = 'users';
+
+    public function orders_Relation() {
+        return $this->hasMany('Order', 'id', 'user_id');
+    }
 }
 class Setting extends TinyOrm\Model {
     static $_table = 'settings';
@@ -38,4 +42,12 @@ class Order extends TinyOrm\Model {
 
 class Shop extends TinyOrm\Model {
     static $_table = 'shops';
+
+    public function categories_Relation() {
+        return $this->belongsToMany('Category', 'id', 'category_shop', 'shop_id', 'category_id', 'id');
+    }
+}
+
+class Category extends TinyOrm\Model {
+    static $_table = 'categories';
 }

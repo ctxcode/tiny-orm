@@ -35,6 +35,9 @@ class Model {
     }
 
     public function getAttribute($key) {
+        if (!array_key_exists($key, $this->_attributes)) {
+            throw new \Exception('Trying to get property "' . $key . '", but this attribute hasnt been set yet');
+        }
         return $this->_attributes[$key];
     }
 
@@ -100,6 +103,23 @@ class Model {
     public function belongsTo($model, $localKey, $foreignKey) {
         $query = $model::select('*');
         $relation = new Relation('belongsTo', $query);
+        $relation->localKey = $localKey;
+        $relation->foreignKey = $foreignKey;
+        return $relation;
+    }
+    public function belongsToMany($model, $localKey, $pivotTable, $pivotLocalKey, $pivotForeignKey, $foreignKey) {
+        $query = $model::select('*');
+        $relation = new Relation('belongsToMany', $query);
+        $relation->localKey = $localKey;
+        $relation->pivotTable = $pivotTable;
+        $relation->pivotLocalKey = $pivotLocalKey;
+        $relation->pivotForeignKey = $pivotForeignKey;
+        $relation->foreignKey = $foreignKey;
+        return $relation;
+    }
+    public function hasMany($model, $localKey, $foreignKey) {
+        $query = $model::select('*');
+        $relation = new Relation('hasMany', $query);
         $relation->localKey = $localKey;
         $relation->foreignKey = $foreignKey;
         return $relation;

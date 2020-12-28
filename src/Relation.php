@@ -11,9 +11,9 @@ class Relation {
     public string $localKey;
     public string $foreightKey;
 
-    public string $relationTable;
-    public string $relationLocalKey;
-    public string $relationForeignKey;
+    public string $pivotTable;
+    public string $pivotLocalKey;
+    public string $pivotForeignKey;
 
     public function __construct(string $type, Query $query) {
         $this->type = $type;

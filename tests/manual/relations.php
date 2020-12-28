@@ -11,3 +11,7 @@ var_dump($o->shop->name);
 $s = Shop::select('*')->where('id', $o->shop_id)->first();
 var_dump($s->id);
 var_dump($s->name);
+
+$u = User::select('*')->where('id', $o->user_id)->with(['orders' => function ($q) {$q->limit(5);}])->first();
+
+var_dump($u->orders->count());
